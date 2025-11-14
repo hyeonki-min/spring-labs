@@ -49,12 +49,21 @@ public class RateLimiterControllerTest {
         );
     }
 
-     @Test
+    @Test
     void testLeakyBucketBasedWater() throws Exception {
         runRateLimiterTest(
                 "/api/ratelimiter/leaky/water",
                 "leaky_water",
                 "build/leaky_bucket_water_results.csv"
+        );
+    }
+
+    @Test
+    void testFixedWindow() throws Exception {
+        runRateLimiterTest(
+                "/api/ratelimiter/fixed",
+                "fixed",
+                "build/fixed_window_results.csv"
         );
     }
 
