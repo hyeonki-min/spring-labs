@@ -1,12 +1,15 @@
 package min.hyeonki.ratelimiter.controller;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,17 +22,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.ResponseEntity;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class RateLimiterControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
+    @Autowired
+    private ObjectMapper mapper;
 
     private static final int THREAD_COUNT = 20;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ISO_INSTANT;
 
-    private static record RequestLog(Instant time, int status, String phase, String algorithm) {}
+    private static record RequestLog(Instant clientTime, long serverTime, int status, String phase, String algorithm) {}
 
     @Test
     void testTokenBucket() throws Exception {
@@ -71,7 +79,7 @@ public class RateLimiterControllerTest {
      * 재사용 가능한 공통 테스트 로직
      */
     private void runRateLimiterTest(String endpoint, String algorithm, String outputFile) throws Exception {
-        List<RequestLog> logs = new CopyOnWriteArrayList<>();
+        Queue<RequestLog> logs = new ConcurrentLinkedQueue<>();
 
         // 첫 burst
         sendBurstRequests(logs, "first-burst", algorithm, endpoint);
@@ -82,14 +90,17 @@ public class RateLimiterControllerTest {
         // 두 번째 burst
         sendBurstRequests(logs, "after-refill", algorithm, endpoint);
 
-        logs.sort(Comparator.comparing(a -> a.time));
-        saveAsCsv(logs, outputFile);
+        List<RequestLog> sorted = logs.stream()
+            .sorted(Comparator.comparing(RequestLog::serverTime))
+            .toList();
+
+        saveAsCsv(sorted, outputFile);
 
         System.out.printf("✅ %s 생성 완료%n", outputFile);
     }
 
     private void sendBurstRequests(
-            List<RequestLog> logs,
+            Queue<RequestLog> logs,
             String phase,
             String algorithm,
             String endpoint
@@ -102,10 +113,19 @@ public class RateLimiterControllerTest {
                 IntStream.range(0, THREAD_COUNT)
                         .mapToObj(i -> (Callable<Void>) () -> {
                             latch.await();
-                            Instant start = Instant.now();
+                            Instant clientStart = Instant.now();
                             ResponseEntity<String> res =
                                     restTemplate.getForEntity(endpoint, String.class);
-                            logs.add(new RequestLog(start, res.getStatusCode().value(), phase, algorithm));
+                            String body = res.getBody();
+                            long serverTime = extractServerTime(body);
+
+                            logs.add(new RequestLog(
+                                    clientStart,
+                                    serverTime,
+                                    res.getStatusCode().value(),
+                                    phase,
+                                    algorithm
+                            ));
                             return null;
                         })
                         .toList();
@@ -118,12 +138,27 @@ public class RateLimiterControllerTest {
 
     private void saveAsCsv(List<RequestLog> logs, String filePath) throws Exception {
         List<String> csv = new ArrayList<>();
-        csv.add("timestamp,status,phase,algorithm");
+        csv.add("client_time,server_time,status,phase,algorithm");
 
         for (RequestLog log : logs) {
-            csv.add(FMT.format(log.time) + "," + log.status + "," + log.phase + "," + log.algorithm);
+            csv.add(
+                FMT.format(log.clientTime()) + "," +
+                log.serverTime() + "," +
+                log.status() + "," +
+                log.phase() + "," +
+                log.algorithm()
+            );
         }
 
-        java.nio.file.Files.write(java.nio.file.Path.of(filePath), csv);
+        Files.write(Path.of(filePath), csv);
+    }
+
+    private long extractServerTime(String body) {
+        try {
+            JsonNode node = mapper.readTree(body);
+            return node.get("serverTime").asLong();
+        } catch (Exception e) {
+            return -1; // 실패 시 표시용
+        }
     }
 }

@@ -5,7 +5,8 @@ import min.hyeonki.ratelimiter.core.FixedWindowRateLimiter;
 import min.hyeonki.ratelimiter.core.LeakyBucketBasedWaterRateLimiter;
 import min.hyeonki.ratelimiter.core.LeakyBucketRateLimiter;
 import min.hyeonki.ratelimiter.core.TokenBucketRateLimiter;
-import min.hyeonki.ratelimiter.model.Algorithm;
+
+import java.util.Map;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
@@ -41,6 +42,8 @@ public class RateLimitAspect {
     @Around("@annotation(rateLimited)")
     public Object limit(ProceedingJoinPoint joinPoint, RateLimited rateLimited) throws Throwable {
         String key = request.getRemoteAddr();
+        long currentTime = System.nanoTime();
+        request.setAttribute("SERVER_TIME", currentTime);
 
         boolean allowed = switch (rateLimited.type()) {
             case TOKEN -> 
@@ -54,7 +57,12 @@ public class RateLimitAspect {
         };
 
         if (!allowed) {
-            return ResponseEntity.status(429).body("Too Many Requests");
+            return ResponseEntity.status(429).body(
+                Map.of(
+                    "serverTime", currentTime,
+                    "status", 429
+                )
+            );
         }
 
         return joinPoint.proceed();
