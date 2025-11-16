@@ -75,6 +75,15 @@ public class RateLimiterControllerTest {
         );
     }
 
+    @Test
+    void testSlidingWindowLog() throws Exception {
+        runRateLimiterTest(
+                "/api/ratelimiter/sliding-log",
+                "sliding-log",
+                "build/sliding_window_log_results.csv"
+        );
+    }
+
     /**
      * 재사용 가능한 공통 테스트 로직
      */

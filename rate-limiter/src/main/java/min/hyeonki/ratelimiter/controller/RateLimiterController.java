@@ -63,4 +63,16 @@ public class RateLimiterController {
             )
         );
     }
+
+    @GetMapping("/sliding-log")
+    @RateLimited(type = Algorithm.SLIDING_LOG, capacity = 10)
+    public ResponseEntity<Map<String, Object>> slidingLog(HttpServletRequest request) {
+        long serverTime = (long) request.getAttribute("SERVER_TIME");
+        return ResponseEntity.ok(
+            Map.of(
+                "status", "OK",
+                "serverTime", serverTime
+            )
+        );
+    }
 }
