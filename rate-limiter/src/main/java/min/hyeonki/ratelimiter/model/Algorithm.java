@@ -5,5 +5,6 @@ public enum Algorithm {
     LEAKY,
     LEAKY_WATER,
     FIXED,
-    SLIDING_LOG
+    SLIDING_LOG,
+    SLIDING_COUNTER
 }

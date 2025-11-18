@@ -83,6 +83,15 @@ public class RateLimiterControllerTest {
                 "build/sliding_window_log_results.csv"
         );
     }
+    
+    @Test
+    void testSlidingWindowCounter() throws Exception {
+        runRateLimiterTest(
+                "/api/ratelimiter/sliding-counter",
+                "sliding-counter",
+                "build/sliding_window_counter_results.csv"
+        );
+    }
 
     /**
      * 재사용 가능한 공통 테스트 로직

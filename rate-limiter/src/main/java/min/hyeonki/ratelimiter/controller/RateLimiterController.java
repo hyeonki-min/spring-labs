@@ -75,4 +75,16 @@ public class RateLimiterController {
             )
         );
     }
+
+    @GetMapping("/sliding-counter")
+    @RateLimited(type = Algorithm.SLIDING_COUNTER, capacity = 10)
+    public ResponseEntity<Map<String, Object>> slidingCounter(HttpServletRequest request) {
+        long serverTime = (long) request.getAttribute("SERVER_TIME");
+        return ResponseEntity.ok(
+            Map.of(
+                "status", "OK",
+                "serverTime", serverTime
+            )
+        );
+    }
 }

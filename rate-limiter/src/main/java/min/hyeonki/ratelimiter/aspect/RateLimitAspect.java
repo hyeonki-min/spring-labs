@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import min.hyeonki.ratelimiter.core.FixedWindowRateLimiter;
 import min.hyeonki.ratelimiter.core.LeakyBucketBasedWaterRateLimiter;
 import min.hyeonki.ratelimiter.core.LeakyBucketRateLimiter;
+import min.hyeonki.ratelimiter.core.SlidingWindowCounterRateLimiter;
 import min.hyeonki.ratelimiter.core.SlidingWindowLogRateLimiter;
 import min.hyeonki.ratelimiter.core.TokenBucketRateLimiter;
 
@@ -24,6 +25,7 @@ public class RateLimitAspect {
     private final LeakyBucketBasedWaterRateLimiter leakyBucketWaterRateLimiter;
     private final FixedWindowRateLimiter fixedWindowRateLimiter;
     private final SlidingWindowLogRateLimiter slidingWindowLogRateLimiter;
+    private final SlidingWindowCounterRateLimiter slidingWindowCounterRateLimiter;
     private final HttpServletRequest request;
 
     public RateLimitAspect(
@@ -32,6 +34,7 @@ public class RateLimitAspect {
             LeakyBucketBasedWaterRateLimiter leakyBucketWaterRateLimiter,
             FixedWindowRateLimiter fixedWindowRateLimiter,
             SlidingWindowLogRateLimiter slidingWindowLogRateLimiter,
+            SlidingWindowCounterRateLimiter slidingWindowCounterRateLimiter,
             HttpServletRequest request
     ) {
         this.tokenBucketRateLimiter = tokenBucketRateLimiter;
@@ -39,6 +42,7 @@ public class RateLimitAspect {
         this.leakyBucketWaterRateLimiter = leakyBucketWaterRateLimiter;
         this.fixedWindowRateLimiter = fixedWindowRateLimiter;
         this.slidingWindowLogRateLimiter = slidingWindowLogRateLimiter;
+        this.slidingWindowCounterRateLimiter = slidingWindowCounterRateLimiter;
         this.request = request;
     }
     
@@ -59,6 +63,8 @@ public class RateLimitAspect {
                 fixedWindowRateLimiter.allowRequest(key, rateLimited.capacity(), 1);
             case SLIDING_LOG ->
                 slidingWindowLogRateLimiter.allowRequest(key, rateLimited.capacity(), 1);
+            case SLIDING_COUNTER ->
+                slidingWindowCounterRateLimiter.allowRequest(key, rateLimited.capacity(), 1);
         };
 
         if (!allowed) {
