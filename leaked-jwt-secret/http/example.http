@@ -1,0 +1,17 @@
+@base = http://localhost:8080
+
+### 로그인
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "user1",
+  "password": "password1"
+}
+
+### 사용자 정보 조회
+@token = {{login.response.body.accessToken}}
+#@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjU0MzE0OTgsImV4cCI6MTc2NTQzNTA5OH0.hWXAU_gPSHVLiztetG0HtaKSKCUC_W8RRMQPbA0ThjM
+GET {{base}}/user/me
+Authorization: Bearer {{token}}

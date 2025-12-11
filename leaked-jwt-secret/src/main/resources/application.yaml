@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:jwtdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  secret: "my-super-secret-key-for-demo-12345678901234567890"
+  expiration-ms: 3600000
+
+logging:
+  level:
+    "[org.springframework.security]": "INFO"
